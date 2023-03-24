@@ -1,0 +1,46 @@
+{
+  "gateway": {
+    "middlewares": [
+      {
+        "name": "setHeader",
+        "args": ["x-global-header", "global"]
+      },
+      {
+        "name": "removeRequestParameter",
+        "args": ["fizz"]
+      }
+    ],
+    "routes": [
+      {
+        "name": "200 OK",
+        "predicates": {
+          "path": "/200"
+        },
+        "address": "env:HTTP_TEST_ADDRESS",
+        "middlewares": [
+          {
+            "name": "setRequestHeader",
+            "args": [ "x-extra-header", "somevalue"]
+          },
+          {
+            "name": "setPath",
+            "args": [""]
+          },
+          {
+            "name": "setHeader",
+            "phase": "post",
+            "args": ["x-post-header", "post", "response"]
+          }
+        ]
+      },
+      {
+        "name": "404 no upstream found",
+        "predicates": {
+          "path": "/404_no_upstream"
+        },
+        "address": "env:HTTP_TEST_ADDRESS_NOT_FOUND",
+        "middlewares": []
+      }
+    ]
+  }
+}

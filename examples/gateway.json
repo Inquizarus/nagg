@@ -1,0 +1,32 @@
+{
+  "gateway": {
+    "middlewares": [
+      {
+        "name": "setHeader",
+        "phase": "post",
+        "args": [
+          "x-post-header",
+          "post",
+          "response"
+        ]
+      }
+    ],
+    "routes": [
+      {
+        "name": "example",
+        "predicates": {
+          "path": "/api/example"
+        },
+        "address": "http://localhost:8081",
+        "middlewares": [
+          {
+            "name": "setPath",
+            "args": [
+              "/mock/example"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
