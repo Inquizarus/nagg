@@ -66,8 +66,11 @@ Middlewares has three attributes.
 Routes has four attributes.
 
 **Name**, plainly an identifier for the route.
+
 **Predicates**, object (described more in detail further down) that determines which requests will use this route.
+
 **Address**, which upstream URL to use for requests. Can use the `env:<environment variable key>` to load ad-hoc from environment when route is triggered.
+
 **Middlewares**, list of middlewares to apply to route.
 
 ### Predicates
