@@ -3,6 +3,8 @@ module github.com/inquizarus/nagg
 go 1.20
 
 require (
+	github.com/MicahParks/keyfunc v1.9.0
+	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/google/uuid v1.3.0
 	github.com/inquizarus/envtools v0.0.0-20230320202003-3c22496b6cfe
 	github.com/inquizarus/rwapper/v2 v2.1.0
