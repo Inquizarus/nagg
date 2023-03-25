@@ -43,6 +43,8 @@ var DefaultLoader = func(name string, args ...interface{}) func(http.Handler) ht
 		return MakeDedupeResponseHeaders(headers...)
 	case "redirect":
 		return MakeRedirectMiddleware(args[0].(int), args[1].(string))
+	case "validateJWTByJWKSURL":
+		return MakeCheckJWTValidityByJWKSURL(args[0].(string), nil, nil)
 	default:
 		return nil
 	}
