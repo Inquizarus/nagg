@@ -28,7 +28,7 @@ func makeHandler(service Service, logger logging.Logger) http.HandlerFunc {
 		route, err := service.RouteForRequest(r)
 
 		if err != nil {
-			logger.Infof("no route found for ", r.URL.String())
+			logger.Infof("no route found for %s", r.URL.String())
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
