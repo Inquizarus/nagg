@@ -33,6 +33,24 @@ func TestThatPredicateMatchWorks(t *testing.T) {
 			},
 			expected: false,
 		},
+		{
+			predicate: domain.NewPredicates("/example"),
+			request: &http.Request{
+				URL: &url.URL{
+					Path: "/example/ostkaka",
+				},
+			},
+			expected: false,
+		},
+		{
+			predicate: domain.NewPredicates("/example*"),
+			request: &http.Request{
+				URL: &url.URL{
+					Path: "/example/ostkaka",
+				},
+			},
+			expected: true,
+		},
 	}
 
 	for _, test := range tests {
