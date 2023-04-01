@@ -12,6 +12,7 @@ import (
 type Service interface {
 	RouteForRequest(*http.Request) (domain.Route, error)
 	CreateUpstreamRequest(route domain.Route, request *http.Request) (*http.Request, error)
+	DoRequest(r *http.Request) (*http.Response, error)
 	GlobalMiddlewares() ([]func(http.Handler) http.Handler, error)
 }
 
@@ -82,6 +83,17 @@ func (s *stdService) CreateUpstreamRequest(route domain.Route, r *http.Request) 
 	upstreamRequest.Header.Set("x-request-id", uuid.New().String())
 
 	return upstreamRequest, nil
+}
+
+func (s *stdService) DoRequest(r *http.Request) (*http.Response, error) {
+
+	client, err := s.config.HTTPClient()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return client.Do(r)
 }
 
 func (s *stdService) GlobalMiddlewares() ([]func(http.Handler) http.Handler, error) {

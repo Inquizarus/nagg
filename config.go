@@ -2,11 +2,13 @@ package nagg
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/inquizarus/nagg/internal/domain"
 	"github.com/inquizarus/nagg/pkg/middlewares"
@@ -29,7 +31,13 @@ type jsonRoute struct {
 	Middlewares []jsonMiddleware `json:"middlewares"`
 }
 
+type jsonHTTP struct {
+	DisableTLSVerification bool `json:"disable_tls_verification"`
+	Timeout                int  `json:"timeout"`
+}
+
 type jsonGateway struct {
+	HTTP       jsonHTTP         `json:"http"`
 	Routes     []jsonRoute      `json:"routes"`
 	Middleware []jsonMiddleware `json:"middlewares"`
 }
@@ -51,6 +59,20 @@ func (config *jsonConfig) Routes() ([]domain.Route, error) {
 func (config *jsonConfig) GlobalMiddlewares() ([]func(http.Handler) http.Handler, error) {
 	middlewares := config.middlewaresFromConfigs(config.Gateway.Middleware, config.middlewareLoader)
 	return append(middlewares["pre"], middlewares["post"]...), nil
+}
+
+func (config *jsonConfig) HTTPClient() (*http.Client, error) {
+
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+
+	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: config.Gateway.HTTP.DisableTLSVerification}
+
+	client := &http.Client{
+		Transport: transport,
+		Timeout:   time.Duration(config.Gateway.HTTP.Timeout) * time.Second,
+	}
+
+	return client, nil
 }
 
 func (config *jsonConfig) middlewaresFromConfigs(configs []jsonMiddleware, middlewareLoader MiddlewareLoader) map[string][]func(http.Handler) http.Handler {

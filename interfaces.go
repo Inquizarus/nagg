@@ -18,4 +18,5 @@ type RoutesLoader func(middlewareLoader MiddlewareLoader) ([]domain.Route, error
 type Config interface {
 	Routes() ([]domain.Route, error)
 	GlobalMiddlewares() ([]func(http.Handler) http.Handler, error)
+	HTTPClient() (*http.Client, error)
 }

@@ -54,14 +54,17 @@ func makeHandler(service Service, logger logging.Logger) http.HandlerFunc {
 			return
 		}
 
+		logger.Debugf("found route %s for request with path %s", route.Name(), r.URL.Path)
+
 		preMiddlewares, err := route.PreMiddlewares()
 
 		if err != nil {
+			logger.Errorf("could not load pre middlewares, %s", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		// Apply route specific preMiddlewares,
+		logger.Debug("applying pre middlewares")
 		rwapper.ChainMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}), preMiddlewares...).ServeHTTP(w, r)
 
 		if status := w.(*responseWriterWrapper).StatusCode; status != http.StatusOK {
@@ -76,11 +79,12 @@ func makeHandler(service Service, logger logging.Logger) http.HandlerFunc {
 			return
 		}
 
-		logging.DefaultLogger.Debugf("performing upstream request to %s", upstreamRequest.URL.String())
+		logger.Debugf("performing upstream request to %s", upstreamRequest.URL.String())
 
-		upstreamResponse, err := http.DefaultClient.Do(upstreamRequest)
+		upstreamResponse, err := service.DoRequest(upstreamRequest)
 
 		if err != nil {
+			logger.Debugf("upstream request resulted in error, %s", err)
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
@@ -90,6 +94,7 @@ func makeHandler(service Service, logger logging.Logger) http.HandlerFunc {
 		postMiddlewares, err := route.PostMiddlewares()
 
 		if err != nil {
+			logger.Errorf("could not load post middlewares, %s", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -103,6 +108,7 @@ func makeHandler(service Service, logger logging.Logger) http.HandlerFunc {
 		w.WriteHeader(upstreamResponse.StatusCode)
 		w.Write(upstreamResponseData)
 
+		logger.Debug("applying post middlewares")
 		rwapper.ChainMiddleware(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {}), postMiddlewares...).ServeHTTP(w, r)
 
 	}
