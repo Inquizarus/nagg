@@ -75,18 +75,18 @@ func (config *jsonConfig) HTTPClient() (*http.Client, error) {
 	return client, nil
 }
 
-func (config *jsonConfig) middlewaresFromConfigs(configs []jsonMiddleware, middlewareLoader MiddlewareLoader) map[string][]func(http.Handler) http.Handler {
+func (cfg *jsonConfig) middlewaresFromConfigs(configs []jsonMiddleware, middlewareLoader MiddlewareLoader) map[string][]func(http.Handler) http.Handler {
 	preMiddlewares := []func(http.Handler) http.Handler{}
 	postMiddlewares := []func(http.Handler) http.Handler{}
 	for _, config := range configs {
 		var middleware func(http.Handler) http.Handler
 
 		if middlewareLoader != nil {
-			middleware = middlewareLoader(config.Name, config.Args...)
+			middleware = middlewareLoader(config.Name, config.Args)
 		}
 
 		if middleware == nil {
-			middleware = middlewares.DefaultLoader(config.Name, config.Args...)
+			middleware = middlewares.DefaultLoader(config.Name, config.Args)
 		}
 
 		if middleware != nil {
