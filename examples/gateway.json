@@ -17,12 +17,12 @@
         "predicates": {
           "path": "/api/example"
         },
-        "address": "http://localhost:8081",
+        "address": "http://gomsvc:8080",
         "middlewares": [
           {
             "name": "setPath",
             "args": [
-              "/mock/example"
+              "/json"
             ]
           }
         ]
