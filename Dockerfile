@@ -1,4 +1,4 @@
-FROM golang:1.20-bullseye as base
+FROM public.ecr.aws/docker/library/golang:1.21.1 as base
 
 RUN adduser \
   --disabled-password \
