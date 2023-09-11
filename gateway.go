@@ -65,7 +65,10 @@ func makeHandler(service Service, logger logging.Logger) http.HandlerFunc {
 		}
 
 		logger.Debug("applying pre middlewares")
-		rwapper.ChainMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}), preMiddlewares...).ServeHTTP(w, r)
+
+		if len(preMiddlewares) > 0 {
+			rwapper.ChainMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}), preMiddlewares...).ServeHTTP(w, r)
+		}
 
 		if status := w.(*responseWriterWrapper).StatusCode; status != http.StatusOK {
 			logger.Infof("response writer status was %d after pre middlewares, returning", status)
