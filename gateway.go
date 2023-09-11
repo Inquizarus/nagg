@@ -1,6 +1,7 @@
 package nagg
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 
@@ -21,10 +22,14 @@ func (rww *responseWriterWrapper) WriteHeader(code int) {
 }
 
 // RegisterHTTPHandlers require a router that allows one route to handle all http methods
-func RegisterHTTPHandlers(pathPrefix string, router rwapper.RouterWrapper, service Service, logger logging.Logger) {
+func RegisterHTTPHandlers(pathPrefix string, router rwapper.RouterWrapper, service Service, logger logging.Logger) error {
 
 	handler := makeHandler(service, logger)
 	middlewares, err := service.GlobalMiddlewares()
+
+	if err != nil {
+		return fmt.Errorf("could not load global middlewares for gateway, %s", err.Error())
+	}
 
 	responseWrapperMiddleware := func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -35,11 +40,8 @@ func RegisterHTTPHandlers(pathPrefix string, router rwapper.RouterWrapper, servi
 		})
 	}
 
-	if err != nil {
-		logger.Info("could not load global middlewares for gateway, %s", err.Error())
-	}
-
 	router.Handle("", pathPrefix, rwapper.ChainMiddleware(handler, append(middlewares, responseWrapperMiddleware)...))
+	return nil
 }
 
 func makeHandler(service Service, logger logging.Logger) http.HandlerFunc {
