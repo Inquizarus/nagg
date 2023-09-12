@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/inquizarus/nagg/internal/domain"
+	"github.com/inquizarus/nagg/pkg/middlewares"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -72,4 +73,30 @@ func TestThatRouteAddressWorks(t *testing.T) {
 		assert.Equal(t, test.expected, test.route.Address())
 	}
 	os.Unsetenv("TestThatRouteMatchWorks_Address")
+}
+
+func TestThatRouteMiddlewaresLoadsCorrectly(t *testing.T) {
+
+	preMws := []func(http.Handler) http.Handler{
+		middlewares.MakeSetPathMiddleware("test"),
+	}
+
+	postMws := []func(http.Handler) http.Handler{
+		middlewares.MakeDedupeResponseHeaders("x-test"),
+	}
+
+	mws := map[string][]func(http.Handler) http.Handler{
+		"pre":  preMws,
+		"post": postMws,
+	}
+
+	r := domain.NewRoute("test", "", domain.NewPredicates("/test"), mws)
+
+	loadedPreMws, err := r.PreMiddlewares()
+	assert.Nil(t, err)
+	assert.IsType(t, preMws[0], loadedPreMws[0])
+
+	loadedPostMws, err := r.PreMiddlewares()
+	assert.Nil(t, err)
+	assert.IsType(t, postMws[0], loadedPostMws[0])
 }
