@@ -12,18 +12,18 @@ Either run the standalone binary or import and register NAGG in your own applica
 
 |Name|Description|Default|
 |---|---|---|
-|NAGG_PORT|Defines which port to start built in server on|8080|
+|NAGG_HTTP_PORT|Defines which port to start built in server on|8080|
 |NAGG_LOG_LEVEL|Determines which log level should be used|info|
 |NAGG_HTTP_BASE_PATH|Determines which base path that NAGG will listen for requests on|/|
-|NAGG_CONFIG|Gateway configuration in JSON format (has precedence) |-|
+|NAGG_CONFIG_JSON|Gateway configuration in JSON format (has precedence) |-|
 |NAGG_CONFIG_FILE_PATH|Gateway configuration in JSON format|-|
 
 See `examples/gateway.json` for an example. 
 
 #### Expansion
-When configuration is loaded from `NAGG_CONFIG`, standard Golang environment expansion will be applied to expand any variable statements in the string.
+When configuration is loaded from `NAGG_CONFIG_JSON`, standard Golang environment expansion will be applied to expand any variable statements in the string.
 
-Given that there is an environment variable named `FOO` with the value `BAR` then the following string in `NAGG_CONFIG`:
+Given that there is an environment variable named `FOO` with the value `bar` then the following string in `NAGG_CONFIG_JSON`:
 
 ```
 '{"foo":"$FOO"}'
@@ -34,21 +34,21 @@ Would result in the following string to be parsed as a config.
 ```
 '{"foo":"bar"}'
 ```
-
-### Gateway
-Global space for configuration in json structure and have two attributes that can be configured.
+### Structure
+#### Gateway
+Global space for configuration in JSON structure and have two attributes that can be configured.
 
 **Middlewares**, global middlewares to apply on each request and response.
 **Routes**, routes to handle requests for in the gateway.
 
-### Middleware
+#### Middleware
 Middlewares has three attributes.
 
 **Name**, which determines which middleware is loaded.
 **Phase**, either pre or post which determines if it's applied before upstream request is done or after. Pre are mainly for request handling while post are mainly for response handling.
 **Args**, List of args that are passed to the middleware factory function.
 
-#### Default middlewares
+##### Default middlewares
 |Name|Description|Args|
 |---|---|---|
 |setHeader|Sets header on request or response|key,value|
@@ -61,7 +61,7 @@ Middlewares has three attributes.
 |dedupeResponseHeaders|Ensures that specified header only has one value, value with index 0 will be used|keys...|
 |redirect|Redirects request|statusCode,destination|
 
-### Route
+#### Route
 
 Routes has four attributes.
 
@@ -73,5 +73,5 @@ Routes has four attributes.
 
 **Middlewares**, list of middlewares to apply to route.
 
-### Predicates
+#### Predicates
 Currently predicates only support a static path.
