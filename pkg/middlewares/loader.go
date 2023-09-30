@@ -58,6 +58,11 @@ var DefaultLoader = func(name string, args []interface{}) func(http.Handler) htt
 			whitelist = strings.Split(args[2].(string), ",")
 		}
 		return MakeJWTCopyClaimToHeaderMiddleware(args[0].(string), args[1].(string), whitelist)
+	case "setResponseBody":
+		return MakeSetResponseBodyMiddleware(strings.NewReader(args[0].(string)))
+	case "setResponseStatusCode":
+
+		return MakeSetResponseStatusCodeMiddleware(int(args[0].(float64)))
 	default:
 		return nil
 	}

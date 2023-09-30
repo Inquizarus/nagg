@@ -4,11 +4,7 @@
       {
         "name": "setHeader",
         "phase": "post",
-        "args": [
-          "x-post-header",
-          "post",
-          "response"
-        ]
+        "args": [ "content-type", "application/json", "response" ]
       }
     ],
     "routes": [
@@ -17,13 +13,17 @@
         "predicates": {
           "path": "/api/example"
         },
-        "address": "http://gomsvc:8080",
+        "address": "",
         "middlewares": [
           {
-            "name": "setPath",
-            "args": [
-              "/json"
-            ]
+            "name": "setResponseStatusCode",
+            "phase": "pre",
+            "args":[201]
+          },
+          {
+            "name": "setResponseBody",
+            "phase": "post",
+            "args":["{\"foo\":\"bar\"}"]
           }
         ]
       }

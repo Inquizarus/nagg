@@ -33,6 +33,7 @@ func RegisterHTTPHandlers(pathPrefix string, router rwapper.RouterWrapper, servi
 
 	responseWrapperMiddleware := func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
 			rww := responseWriterWrapper{w, http.StatusOK, logger}
 			if h != nil {
 				h.ServeHTTP(&rww, r)
@@ -77,24 +78,35 @@ func makeHandler(service Service, logger logging.Logger) http.HandlerFunc {
 			return
 		}
 
-		upstreamRequest, err := service.CreateUpstreamRequest(route, r)
+		if route.Address() != "" {
+			upstreamRequest, err := service.CreateUpstreamRequest(route, r)
 
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			logger.Debugf("performing upstream request to %s", upstreamRequest.URL.String())
+
+			upstreamResponse, err := service.DoRequest(upstreamRequest)
+
+			if err != nil {
+				logger.Debugf("upstream request resulted in error, %s", err)
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+
+			defer upstreamResponse.Body.Close()
+
+			upstreamResponseData, _ := io.ReadAll(upstreamResponse.Body)
+
+			for k, v := range upstreamResponse.Header {
+				w.Header().Set(k, v[0])
+			}
+
+			w.WriteHeader(upstreamResponse.StatusCode)
+			w.Write(upstreamResponseData)
 		}
-
-		logger.Debugf("performing upstream request to %s", upstreamRequest.URL.String())
-
-		upstreamResponse, err := service.DoRequest(upstreamRequest)
-
-		if err != nil {
-			logger.Debugf("upstream request resulted in error, %s", err)
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-
-		defer upstreamResponse.Body.Close()
 
 		postMiddlewares, err := route.PostMiddlewares()
 
@@ -104,16 +116,8 @@ func makeHandler(service Service, logger logging.Logger) http.HandlerFunc {
 			return
 		}
 
-		upstreamResponseData, _ := io.ReadAll(upstreamResponse.Body)
-
-		for k, v := range upstreamResponse.Header {
-			w.Header().Set(k, v[0])
-		}
-
-		w.WriteHeader(upstreamResponse.StatusCode)
-		w.Write(upstreamResponseData)
-
 		logger.Debug("applying post middlewares")
+
 		rwapper.ChainMiddleware(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {}), postMiddlewares...).ServeHTTP(w, r)
 
 	}
