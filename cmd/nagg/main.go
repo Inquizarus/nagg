@@ -26,7 +26,7 @@ func main() {
 	port := envtools.GetWithFallback("NAGG_PORT", "8080")
 	basePath := envtools.GetWithFallback("NAGG_HTTP_BASE_PATH", "/")
 
-	logger.Debugf("registering NAGG gateway handler on base path %s", basePath)
+	logger.Debugf("registrering NAGG gateway handler on base path %s", basePath)
 
 	if err = nagg.RegisterHTTPHandlers(basePath, router, nagg.NewService(config), logger); err != nil {
 		logger.Errorf("could not start NAGG gateway: %s", err.Error())
