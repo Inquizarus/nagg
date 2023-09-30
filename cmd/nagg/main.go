@@ -3,6 +3,8 @@ package main
 import (
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/inquizarus/envtools"
 	"github.com/inquizarus/nagg"
@@ -43,15 +45,25 @@ func main() {
 	logger.Debugf("registrering gateway handler on base path %s", basePath)
 
 	if err = nagg.RegisterHTTPHandlers(basePath, router, nagg.NewService(config), logger); err != nil {
-		logger.Errorf("could not start NAGG gateway: %s", err.Error())
+		logger.Errorf("could not start gateway: %s", err.Error())
 		os.Exit(1)
 	}
 
-	logger.Infof("gateway starting on port %s", port)
+	signalChannel := make(chan os.Signal, 1)
+	signal.Notify(signalChannel, syscall.SIGTERM, syscall.SIGINT)
 
-	if err = http.ListenAndServe(":"+port, router); err != nil {
-		logger.Error(err)
-	}
+	go func() {
+		logger.Infof("gateway starting on port %s", port)
+
+		if err = http.ListenAndServe(":"+port, router); err != nil {
+			logger.Error(err)
+			signalChannel <- syscall.SIGTERM
+		}
+	}()
+
+	receivedSignal := <-signalChannel
+
+	logger.Infof("received signal '%s', shutting down", receivedSignal)
 
 }
 
