@@ -92,6 +92,7 @@ func (cfg *jsonConfig) middlewaresFromConfigs(configs []jsonMiddleware, middlewa
 		if middleware != nil {
 			if config.Phase == "post" {
 				postMiddlewares = append(postMiddlewares, middleware)
+				continue
 			}
 			preMiddlewares = append(preMiddlewares, middleware)
 		}
