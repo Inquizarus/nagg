@@ -5,21 +5,11 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/inquizarus/gosebus"
+	"github.com/inquizarus/nagg/pkg/httptools"
 	"github.com/inquizarus/nagg/pkg/logging"
 	"github.com/inquizarus/rwapper/v2"
 )
-
-type responseWriterWrapper struct {
-	http.ResponseWriter
-	StatusCode int
-	log        logging.Logger
-}
-
-func (rww *responseWriterWrapper) WriteHeader(code int) {
-	rww.log.Debugf("changing response status code from %d to %d", rww.StatusCode, code)
-	rww.StatusCode = code
-	rww.ResponseWriter.WriteHeader(code)
-}
 
 // RegisterHTTPHandlers require a router that allows one route to handle all http methods
 func RegisterHTTPHandlers(pathPrefix string, router rwapper.RouterWrapper, service Service, logger logging.Logger) error {
@@ -33,8 +23,7 @@ func RegisterHTTPHandlers(pathPrefix string, router rwapper.RouterWrapper, servi
 
 	responseWrapperMiddleware := func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-			rww := responseWriterWrapper{w, http.StatusOK, logger}
+			rww := httptools.NewResponseWriterWrapper(w, http.StatusOK, logger)
 			if h != nil {
 				h.ServeHTTP(&rww, r)
 			}
@@ -57,6 +46,8 @@ func makeHandler(service Service, logger logging.Logger) http.HandlerFunc {
 			return
 		}
 
+		gosebus.DefaultBus.Publish(gosebus.NewEvent("request_handled", *r))
+
 		logger.Debugf("found route %s for request with path %s", route.Name(), r.URL.Path)
 
 		preMiddlewares, err := route.PreMiddlewares()
@@ -73,7 +64,7 @@ func makeHandler(service Service, logger logging.Logger) http.HandlerFunc {
 			rwapper.ChainMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}), preMiddlewares...).ServeHTTP(w, r)
 		}
 
-		if status := w.(*responseWriterWrapper).StatusCode; status != http.StatusOK {
+		if status := w.(httptools.ResponseWriterWrapper).Status(); status != http.StatusOK {
 			logger.Infof("response writer status was %d after pre middlewares, returning", status)
 			return
 		}

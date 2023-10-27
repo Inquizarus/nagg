@@ -9,13 +9,6 @@ import (
 	"github.com/inquizarus/nagg/pkg/httptools"
 )
 
-type Service interface {
-	RouteForRequest(*http.Request) (domain.Route, error)
-	CreateUpstreamRequest(route domain.Route, request *http.Request) (*http.Request, error)
-	DoRequest(r *http.Request) (*http.Response, error)
-	GlobalMiddlewares() ([]func(http.Handler) http.Handler, error)
-}
-
 type stdService struct {
 	config       Config
 	routes       []domain.Route

@@ -20,3 +20,10 @@ type Config interface {
 	GlobalMiddlewares() ([]func(http.Handler) http.Handler, error)
 	HTTPClient() (*http.Client, error)
 }
+
+type Service interface {
+	RouteForRequest(*http.Request) (domain.Route, error)
+	CreateUpstreamRequest(route domain.Route, request *http.Request) (*http.Request, error)
+	DoRequest(r *http.Request) (*http.Response, error)
+	GlobalMiddlewares() ([]func(http.Handler) http.Handler, error)
+}

@@ -1,15 +1,21 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/inquizarus/envtools"
+	"github.com/inquizarus/gosebus"
 	"github.com/inquizarus/nagg"
 	"github.com/inquizarus/nagg/pkg/logging"
 	"github.com/inquizarus/rwapper/v2/pkg/servemuxwrapper"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/otel/exporters/prometheus"
+	metricapi "go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/sdk/metric"
 )
 
 const (
@@ -44,6 +50,8 @@ func main() {
 
 	logger.Debugf("registrering gateway handler on base path %s", basePath)
 
+	router.Handle(http.MethodGet, "/metrics", promhttp.Handler())
+
 	if err = nagg.RegisterHTTPHandlers(basePath, router, nagg.NewService(config), logger); err != nil {
 		logger.Errorf("could not start gateway: %s", err.Error())
 		os.Exit(1)
@@ -60,6 +68,16 @@ func main() {
 			signalChannel <- syscall.SIGTERM
 		}
 	}()
+
+	ctx := context.Background()
+	exporter, _ := prometheus.New()
+	provider := metric.NewMeterProvider(metric.WithReader(exporter))
+	meter := provider.Meter("github.com/inquizarus/nagg/cmd/nagg")
+	counter, _ := meter.Int64Counter("nagg_requests_handled_total", metricapi.WithDescription("counter of how many requests that has been handled"))
+
+	gosebus.DefaultBus.Handle(gosebus.NewStandardEventHandler("request_handled", func(e gosebus.Event) {
+		counter.Add(ctx, 1)
+	}))
 
 	receivedSignal := <-signalChannel
 
