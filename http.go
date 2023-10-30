@@ -6,6 +6,8 @@ import (
 	"net/http"
 
 	"github.com/inquizarus/gosebus"
+	"github.com/inquizarus/nagg/internal/domain"
+	"github.com/inquizarus/nagg/internal/events"
 	"github.com/inquizarus/nagg/pkg/httptools"
 	"github.com/inquizarus/nagg/pkg/logging"
 	"github.com/inquizarus/rwapper/v2"
@@ -36,9 +38,16 @@ func RegisterHTTPHandlers(pathPrefix string, router rwapper.RouterWrapper, servi
 
 func makeHandler(service Service, logger logging.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
 
-		route, err := service.RouteForRequest(r)
+		var route domain.Route
+		var err error
+
+		defer r.Body.Close()
+		defer func() {
+			events.PublishRequestWasHandled(gosebus.DefaultBus, w, *r, route)
+		}()
+
+		route, err = service.RouteForRequest(r)
 
 		if err != nil {
 			logger.Infof("no route found for %s", r.URL.String())
@@ -46,7 +55,7 @@ func makeHandler(service Service, logger logging.Logger) http.HandlerFunc {
 			return
 		}
 
-		gosebus.DefaultBus.Publish(gosebus.NewEvent("request_handled", *r))
+		events.PublishRouteMatchedRequest(gosebus.DefaultBus, route, *r)
 
 		logger.Debugf("found route %s for request with path %s", route.Name(), r.URL.Path)
 
@@ -80,6 +89,8 @@ func makeHandler(service Service, logger logging.Logger) http.HandlerFunc {
 			logger.Debugf("performing upstream request to %s", upstreamRequest.URL.String())
 
 			upstreamResponse, err := service.DoRequest(upstreamRequest)
+
+			events.PublishUpstreamRequestWasDone(gosebus.DefaultBus, *upstreamResponse, *upstreamRequest)
 
 			if err != nil {
 				logger.Debugf("upstream request resulted in error, %s", err)

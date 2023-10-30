@@ -9,16 +9,16 @@
     ],
     "routes": [
       {
-        "name": "example",
+        "name": "api_json_wildcard",
         "predicates": {
-          "path": "/api/example"
+          "path": "/api/json/*"
         },
         "address": "",
         "middlewares": [
           {
             "name": "setResponseStatusCode",
             "phase": "pre",
-            "args":[201]
+            "args":[200]
           },
           {
             "name": "setResponseBody",
