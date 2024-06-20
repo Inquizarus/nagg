@@ -53,13 +53,6 @@ func main() {
 	port := envtools.GetWithFallback(HTTP_PORT_ENV_KEY, DEFAULT_HTTP_PORT)
 	basePath := envtools.GetWithFallback(HTTP_BASE_PATH_ENV_KEY, DEFAULT_HTTP_BASE_PATH)
 
-	logger.Debugf("register gateway handler on base path %s", basePath)
-
-	if err = nagg.RegisterHTTPHandlers(basePath, router, nagg.NewService(config), logger); err != nil {
-		logger.Errorf("could not start gateway: %s", err.Error())
-		os.Exit(1)
-	}
-
 	/*
 	*	Metrics configuration
 	 */
@@ -101,6 +94,17 @@ func main() {
 		}
 
 	}))
+
+	/*
+	 * Nagg handler configuration
+	 */
+
+	logger.Debugf("register gateway handler on base path %s", basePath)
+
+	if err = nagg.RegisterHTTPHandlers(basePath, router, nagg.NewService(config), logger); err != nil {
+		logger.Errorf("could not start gateway: %s", err.Error())
+		os.Exit(1)
+	}
 
 	/*
 	* Start server and handle graceful shutdowns

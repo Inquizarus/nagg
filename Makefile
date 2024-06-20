@@ -36,7 +36,7 @@ run_local_cmd:
 
 .PHONY: run_with_docker
 run_with_docker:
-	docker run -e NAGG_CONFIG_FILE_PATH="/app/examples/gateway.json" -p 8080:8080 --rm -v ./:/app -w /app public.ecr.aws/docker/library/golang:1.21.1 go run /app/cmd/nagg/main.go
+	docker run -e NAGG_CONFIG_FILE_PATH="/app/examples/gateway.json" -e ADD_ENDPOINT_TO_METRICS_ENV_KEY="yes" -p 8080:8080 --rm -v ./:/app -w /app public.ecr.aws/docker/library/golang:1.21.3 go run /app/cmd/nagg/main.go
 
 .PHONY: clean
 clean:
