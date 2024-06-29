@@ -22,12 +22,12 @@ github.com/golang/protobuf v1.5.3/go.mod h1:XVQd3VNwM+JqD3oG2Ue2ip4fOMUkwXdXDdiu
 github.com/google/go-cmp v0.5.5/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/google/go-cmp v0.5.9 h1:O2Tfq5qg4qc4AmwVlvv0oLiVAGB7enBSJ2x2DqQFi38=
 github.com/google/go-cmp v0.5.9/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
-github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=
-github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+github.com/google/uuid v1.4.0 h1:MtMxsa51/r9yyhkyLsVeVt0B+BGQZzpQiTQ4eHZ8bc4=
+github.com/google/uuid v1.4.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/inquizarus/envtools v0.0.0-20230320202003-3c22496b6cfe h1:Pj5D/2NZh+7IWp/7uNZhPvYbLPvn89QbqoiRMkDquP8=
 github.com/inquizarus/envtools v0.0.0-20230320202003-3c22496b6cfe/go.mod h1:+RnmSwsS47Jvr2r1yyb8MnaXj+hs3BKazFB4mlUynoI=
-github.com/inquizarus/gosebus v0.0.1 h1:1lAtAEN/ddxWm/nW8wZO+zH3h1d6Czp9m1R0X+y9XoY=
-github.com/inquizarus/gosebus v0.0.1/go.mod h1:0/JGhYIYwBktnpsiaLB1KH/betZ6vzN6cJVRTNwyKOw=
+github.com/inquizarus/gosebus v1.0.0 h1:YQQTKGJG6xp8VCGfusfQvkGZJfWsGVbyr8HtfmBpW3A=
+github.com/inquizarus/gosebus v1.0.0/go.mod h1:Qai6/Nex3A6QTHVhQmOtt4zhJ33g8tDcgIufw9uf+Bk=
 github.com/inquizarus/rwapper/v2 v2.1.0 h1:IObnWAGUmhFVA7vG0CoYmCaF5E0eZLpH337/XzT5jT4=
 github.com/inquizarus/rwapper/v2 v2.1.0/go.mod h1:maw05Z00gcOtf3SpdvdJf3Z5KAZIxbAm/9M9/RczkFE=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=

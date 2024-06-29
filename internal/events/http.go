@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/inquizarus/gosebus"
+	gevent "github.com/inquizarus/gosebus/pkg/event"
 	"github.com/inquizarus/nagg/internal/domain"
 )
 
@@ -30,7 +31,7 @@ type RouteMatchedRequest struct {
 }
 
 func PublishRequestWasHandled(bus gosebus.Bus, responseWriter http.ResponseWriter, request http.Request, route domain.Route) error {
-	return bus.Publish(gosebus.NewEvent(REQUEST_WAS_HANDLED_EVENT, RequestHandled{
+	return bus.Publish(gevent.NewEvent(REQUEST_WAS_HANDLED_EVENT, RequestHandled{
 		Request:        request,
 		ResponseWriter: responseWriter,
 		Route:          route,
@@ -38,14 +39,14 @@ func PublishRequestWasHandled(bus gosebus.Bus, responseWriter http.ResponseWrite
 }
 
 func PublishUpstreamRequestWasDone(bus gosebus.Bus, response http.Response, request http.Request) error {
-	return bus.Publish(gosebus.NewEvent(UPSTREAM_REQUEST_DONE_EVENT, UpstreamRequestDone{
+	return bus.Publish(gevent.NewEvent(UPSTREAM_REQUEST_DONE_EVENT, UpstreamRequestDone{
 		Request:  request,
 		Response: response,
 	}))
 }
 
 func PublishRouteMatchedRequest(bus gosebus.Bus, route domain.Route, request http.Request) error {
-	return bus.Publish(gosebus.NewEvent(ROUTE_MATCHED_REQUEST_EVENT, RouteMatchedRequest{
+	return bus.Publish(gevent.NewEvent(ROUTE_MATCHED_REQUEST_EVENT, RouteMatchedRequest{
 		Request: request,
 		Route:   route,
 	}))

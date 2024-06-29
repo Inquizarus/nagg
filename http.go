@@ -14,9 +14,9 @@ import (
 )
 
 // RegisterHTTPHandlers require a router that allows one route to handle all http methods
-func RegisterHTTPHandlers(pathPrefix string, router rwapper.RouterWrapper, service Service, logger logging.Logger) error {
+func RegisterHTTPHandlers(pathPrefix string, router rwapper.RouterWrapper, eventbus gosebus.Bus, service Service, logger logging.Logger) error {
 
-	handler := makeHandler(service, logger)
+	handler := makeHandler(service, eventbus, logger)
 	middlewares, err := service.GlobalMiddlewares()
 
 	if err != nil {
@@ -36,7 +36,7 @@ func RegisterHTTPHandlers(pathPrefix string, router rwapper.RouterWrapper, servi
 	return nil
 }
 
-func makeHandler(service Service, logger logging.Logger) http.HandlerFunc {
+func makeHandler(service Service, eventbus gosebus.Bus, logger logging.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		var route domain.Route
@@ -44,7 +44,7 @@ func makeHandler(service Service, logger logging.Logger) http.HandlerFunc {
 
 		defer r.Body.Close()
 		defer func() {
-			events.PublishRequestWasHandled(gosebus.DefaultBus, w, *r, route)
+			events.PublishRequestWasHandled(eventbus, w, *r, route)
 		}()
 
 		route, err = service.RouteForRequest(r)
@@ -55,7 +55,7 @@ func makeHandler(service Service, logger logging.Logger) http.HandlerFunc {
 			return
 		}
 
-		events.PublishRouteMatchedRequest(gosebus.DefaultBus, route, *r)
+		events.PublishRouteMatchedRequest(eventbus, route, *r)
 
 		logger.Debugf("found route %s for request with path %s", route.Name(), r.URL.Path)
 
@@ -82,6 +82,7 @@ func makeHandler(service Service, logger logging.Logger) http.HandlerFunc {
 			upstreamRequest, err := service.CreateUpstreamRequest(route, r)
 
 			if err != nil {
+				logger.Errorf("could not create upstream request, %s", err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
@@ -90,7 +91,7 @@ func makeHandler(service Service, logger logging.Logger) http.HandlerFunc {
 
 			upstreamResponse, err := service.DoRequest(upstreamRequest)
 
-			events.PublishUpstreamRequestWasDone(gosebus.DefaultBus, *upstreamResponse, *upstreamRequest)
+			events.PublishUpstreamRequestWasDone(eventbus, *upstreamResponse, *upstreamRequest)
 
 			if err != nil {
 				logger.Debugf("upstream request resulted in error, %s", err)

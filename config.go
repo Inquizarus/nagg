@@ -36,6 +36,12 @@ type jsonHTTP struct {
 	Timeout                int  `json:"timeout"`
 }
 
+type jsonMetrics struct {
+	Enabled              bool   `json:"enabled"`
+	AddEndpointToMetrics bool   `json:"add_endpoint_to_metrics"`
+	Path                 string `json:"path"`
+}
+
 type jsonGateway struct {
 	HTTP       jsonHTTP         `json:"http"`
 	Routes     []jsonRoute      `json:"routes"`
@@ -46,6 +52,8 @@ type jsonConfig struct {
 	middlewareLoader MiddlewareLoader
 	Gateway          jsonGateway `json:"gateway"`
 }
+
+type ConfigLoader func() (Config, error)
 
 func (config *jsonConfig) Routes() ([]domain.Route, error) {
 	routes := []domain.Route{}
@@ -134,4 +142,16 @@ func JSONConfigFromFile(path string, middlewareLoader MiddlewareLoader) (Config,
 	file.Close()
 
 	return JSONConfig(bytes.NewReader(data), middlewareLoader)
+}
+
+func MakeJSONConfigLoader(r io.Reader, middlewareLoader MiddlewareLoader) ConfigLoader {
+	return func() (Config, error) {
+		return JSONConfig(r, middlewareLoader)
+	}
+}
+
+func MakeJSONConfigFromFileLoader(path string, middlewareLoader MiddlewareLoader) ConfigLoader {
+	return func() (Config, error) {
+		return JSONConfigFromFile(path, middlewareLoader)
+	}
 }

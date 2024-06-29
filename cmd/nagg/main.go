@@ -9,10 +9,13 @@ import (
 
 	"github.com/inquizarus/envtools"
 	"github.com/inquizarus/gosebus"
+	"github.com/inquizarus/gosebus/pkg/event"
+	ghandler "github.com/inquizarus/gosebus/pkg/handler"
 	"github.com/inquizarus/nagg"
 	"github.com/inquizarus/nagg/internal/events"
 	"github.com/inquizarus/nagg/pkg/httptools"
 	"github.com/inquizarus/nagg/pkg/logging"
+	"github.com/inquizarus/rwapper/v2"
 	"github.com/inquizarus/rwapper/v2/pkg/servemuxwrapper"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/otel/attribute"
@@ -39,72 +42,35 @@ const (
 
 func main() {
 
-	var config nagg.Config
+	//	var config nagg.Config
 	var err error
 
 	logger := logging.NewLogrusLogger(nil, envtools.GetWithFallback(LOG_LEVEL_ENV_KEY, DEFAULT_LOG_LEVEL), nil)
-
-	if config, err = loadGatewayConfig(logger); err != nil {
-		logger.Errorf("could not start gateway: %s", err.Error())
-		os.Exit(1)
-	}
-
 	router := servemuxwrapper.New(nil)
 	port := envtools.GetWithFallback(HTTP_PORT_ENV_KEY, DEFAULT_HTTP_PORT)
-	basePath := envtools.GetWithFallback(HTTP_BASE_PATH_ENV_KEY, DEFAULT_HTTP_BASE_PATH)
+	eventbus := gosebus.New()
+
+	eventbus.On("nagg_*", func(e event.Event) {
+		logger.Debugf("NAGG event %s", e.Name())
+	})
 
 	/*
 	*	Metrics configuration
 	 */
-
-	addEndpointToMetrics := envtools.GetWithFallback(ADD_ENDPOINT_TO_METRICS_ENV_KEY, "")
-
-	router.Handle(http.MethodGet, "/metrics", promhttp.Handler())
-
 	ctx := context.Background()
-	exporter, _ := prometheus.New()
-	provider := metric.NewMeterProvider(metric.WithReader(exporter))
-	meter := provider.Meter("github.com/inquizarus/nagg/cmd/nagg")
-
-	requestCounter, _ := meter.Int64Counter("nagg_request_total", metricapi.WithDescription("counter of how many requests that has been handled"))
-	httpStatusCounter, _ := meter.Int64Counter("nagg_http_status", metricapi.WithDescription("counter of http statuses"))
-	routeCounter, _ := meter.Int64Counter("nagg_route_hits", metricapi.WithDescription("counter of route hits"))
-
-	gosebus.DefaultBus.Handle(gosebus.NewStandardEventHandler(events.REQUEST_WAS_HANDLED_EVENT, func(e gosebus.Event) {
-		data := e.Data().(events.RequestHandled)
-
-		requestCounter.Add(ctx, 1)
-
-		if addEndpointToMetrics != "" {
-			httpStatusCounter.Add(ctx, 1, metricapi.WithAttributes(
-				attribute.Int("status", data.ResponseWriter.(httptools.ResponseWriterWrapper).Status()),
-				attribute.String("uri", data.Request.RequestURI),
-			))
-		} else {
-			httpStatusCounter.Add(ctx, 1, metricapi.WithAttributes(
-				attribute.Int("status", data.ResponseWriter.(httptools.ResponseWriterWrapper).Status()),
-			))
-		}
-
-		if data.Route != nil {
-			routeCounter.Add(ctx, 1, metricapi.WithAttributes(
-				attribute.String("name", data.Route.Name()),
-				attribute.String("path", data.Route.Path()),
-			))
-		}
-
-	}))
+	enableMetrics(ctx, router, eventbus)
 
 	/*
 	 * Nagg handler configuration
 	 */
 
-	logger.Debugf("register gateway handler on base path %s", basePath)
-
-	if err = nagg.RegisterHTTPHandlers(basePath, router, nagg.NewService(config), logger); err != nil {
-		logger.Errorf("could not start gateway: %s", err.Error())
-		os.Exit(1)
-	}
+	nagg.Register(
+		envtools.GetWithFallback(HTTP_BASE_PATH_ENV_KEY, DEFAULT_HTTP_BASE_PATH),
+		router,
+		eventbus,
+		makeLoadGatewayConfig(logger),
+		logger,
+	)
 
 	/*
 	* Start server and handle graceful shutdowns
@@ -128,16 +94,60 @@ func main() {
 
 }
 
-func loadGatewayConfig(logger logging.Logger) (nagg.Config, error) {
-	r, found := envtools.GetJSONData(CONFIG_JSON_ENV_KEY)
-	if r != nil && found {
-		logger.Infof("loading gateway config from JSON in environment variable %s", CONFIG_JSON_ENV_KEY)
-		return nagg.JSONConfig(r, nil)
+func enableMetrics(ctx context.Context, router rwapper.RouterWrapper, eventbus gosebus.Bus) {
+	addEndpointToMetrics := envtools.GetWithFallback(ADD_ENDPOINT_TO_METRICS_ENV_KEY, "")
+
+	router.Handle(http.MethodGet, "/metrics", promhttp.Handler())
+
+	exporter, _ := prometheus.New()
+	provider := metric.NewMeterProvider(metric.WithReader(exporter))
+	meter := provider.Meter("github.com/inquizarus/nagg/cmd/nagg")
+
+	requestCounter, _ := meter.Int64Counter("nagg_request_total", metricapi.WithDescription("counter of how many requests that has been handled"))
+	httpStatusCounter, _ := meter.Int64Counter("nagg_http_status", metricapi.WithDescription("counter of http statuses"))
+	routeCounter, _ := meter.Int64Counter("nagg_route_hits", metricapi.WithDescription("counter of route hits"))
+
+	eventbus.Handle(ghandler.New(func(e event.Event) {
+
+		data := e.Data().(events.RequestHandled)
+
+		requestCounter.Add(ctx, 1)
+
+		if addEndpointToMetrics != "" {
+			httpStatusCounter.Add(ctx, 1, metricapi.WithAttributes(
+				attribute.Int("status", data.ResponseWriter.(httptools.ResponseWriterWrapper).Status()),
+				attribute.String("uri", data.Request.RequestURI),
+			))
+		} else {
+			httpStatusCounter.Add(ctx, 1, metricapi.WithAttributes(
+				attribute.Int("status", data.ResponseWriter.(httptools.ResponseWriterWrapper).Status()),
+			))
+		}
+
+		if data.Route != nil {
+			routeCounter.Add(ctx, 1, metricapi.WithAttributes(
+				attribute.String("name", data.Route.Name()),
+				attribute.String("path", data.Route.Path()),
+			))
+		}
+
+	},
+		ghandler.WithPattern(events.REQUEST_WAS_HANDLED_EVENT),
+	))
+}
+
+func makeLoadGatewayConfig(logger logging.Logger) nagg.ConfigLoader {
+	return func() (nagg.Config, error) {
+		r, found := envtools.GetJSONData(CONFIG_JSON_ENV_KEY)
+		if r != nil && found {
+			logger.Infof("parsing config from json string in environment variable %s", CONFIG_JSON_ENV_KEY)
+			return nagg.JSONConfig(r, nil)
+		}
+		configPath, err := envtools.GetRequiredOrError(CONFIG_FILE_PATH_ENV_KEY)
+		if err != nil {
+			return nil, err
+		}
+		logger.Infof("loading nagg config json file with path from environment variable %s", CONFIG_FILE_PATH_ENV_KEY)
+		return nagg.JSONConfigFromFile(configPath, nil)
 	}
-	configPath, err := envtools.GetRequiredOrError(CONFIG_FILE_PATH_ENV_KEY)
-	if err != nil {
-		return nil, err
-	}
-	logger.Infof("loading gateway config from file %s", configPath)
-	return nagg.JSONConfigFromFile(configPath, nil)
 }

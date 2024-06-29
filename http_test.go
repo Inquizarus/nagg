@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/inquizarus/gosebus"
 	"github.com/inquizarus/nagg"
 	"github.com/inquizarus/nagg/pkg/logging"
 	"github.com/inquizarus/rwapper/v2/pkg/servemuxwrapper"
@@ -32,7 +33,7 @@ func TestThatGatewayHandlerWorks(t *testing.T) {
 		w.WriteHeader(code)
 	})
 
-	nagg.RegisterHTTPHandlers("/", router, service, logging.NewPlainLogger(nil, ""))
+	nagg.RegisterHTTPHandlers("/", router, gosebus.DefaultBus, service, logging.NewPlainLogger(nil, ""))
 
 	server := httptest.NewServer(router)
 
